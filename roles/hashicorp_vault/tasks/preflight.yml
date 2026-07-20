@@ -40,7 +40,7 @@
     quiet: true
 
 # tenant is OPTIONAL. With a tenant the mount is kv-<tenant>-<env>; without one it
-# collapses to a plain kv-<env> (single-tenant/shared estate). Either way the names
+# collapses to a plain kv-<env> (single-tenant/shared environment). Either way the names
 # must be hyphen-free: a hyphen makes kv-<tenant>-<env> ambiguous (kv-a-b-c = tenant
 # a-b/env c OR tenant a/env b-c) and breaks the kv-<tenant>-* admin glob. env is
 # required; tenant may be empty/omitted (the '*' allows the empty string).
@@ -110,7 +110,7 @@
 - name: "Announce resolved topology"
   ansible.builtin.debug:
     msg: >-
-      hashicorp_vault: {{ hashicorp_vault_node_count }} node(s) ->
+      hashicorp_vault_container: {{ hashicorp_vault_node_count }} node(s) ->
       {{ 'Raft HA' if (hashicorp_vault_is_ha | bool) else 'standalone (single server)' }};
       first node = {{ hashicorp_vault_first_node }}; scheme = {{ hashicorp_vault_scheme }}
   run_once: true

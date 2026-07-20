@@ -1,6 +1,6 @@
 #!/bin/bash
 {{ ansible_managed | comment }}
-# hashicorp_vault — Raft snapshot backup.
+# hashicorp_vault_container — Raft snapshot backup.
 # Runs on every node via a systemd timer, but ONLY the active Raft leader
 # actually takes the snapshot (is_self), so exactly one snapshot is produced
 # per schedule. The snapshot is taken inside the container and copied out to the

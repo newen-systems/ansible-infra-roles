@@ -50,7 +50,7 @@
       community.crypto.openssl_csr:
         path: "{{ hashicorp_vault_tls_local_dir }}/ca.csr"
         privatekey_path: "{{ hashicorp_vault_tls_local_dir }}/ca.key"
-        common_name: "hashicorp_vault CA"
+        common_name: "hashicorp_vault_container CA"
         basic_constraints:
           - "CA:TRUE"
         basic_constraints_critical: true
@@ -177,51 +177,117 @@
         that:
           - _hashicorp_vault_onhost_stat.results | map(attribute='stat.exists') | select | list | length == 3
         fail_msg: >-
-          hashicorp_vault_tls_onhost is true but one of hashicorp_vault_tls_onhost_ca /
-          _cert / _key is missing on {{ inventory_hostname }}. certmonger/ipa-getcert
-          must issue them into {{ hashicorp_vault_certs_dir }} BEFORE this role runs.
+          hashicorp_vault_tls_onhost is true but one of hashicorp_vault_tls_onhost_ca
+          ({{ hashicorp_vault_tls_onhost_ca }}) / _cert ({{ hashicorp_vault_tls_onhost_cert }})
+          / _key ({{ hashicorp_vault_tls_onhost_key }}) is missing on {{ inventory_hostname }}.
+          certmonger/ipa-getcert must have issued them to those paths BEFORE this role runs
+          — this role only PUBLISHES them into {{ hashicorp_vault_certs_dir }}, it does not
+          request them. Run the freeipa_client role's `certs` phase first.
         quiet: true
 
-    # ca.crt (the issuing CA chain) + vault.key are placed verbatim.
-    - name: "Place the CA chain + private key into the container certs dir"
-      become: true  # root: reads root-owned on-host certs, writes the certs dir
-      ansible.builtin.copy:
-        src: "{{ item.src }}"
-        dest: "{{ hashicorp_vault_certs_dir }}/{{ item.dest }}"
-        remote_src: true
-        owner: "{{ hashicorp_vault_uid }}"
-        group: "{{ hashicorp_vault_gid }}"
-        mode: "{{ item.mode }}"
-      loop:
-        - {src: "{{ hashicorp_vault_tls_onhost_ca }}", dest: ca.crt, mode: "0644"}
-        - {src: "{{ hashicorp_vault_tls_onhost_key }}", dest: vault.key, mode: "0600"}
-      loop_control:
-        label: "{{ item.dest }}"
-      no_log: true
-      notify: Restart vault container
+    # Publishing is delegated to a script rather than done inline, because the
+    # SAME script is certmonger's post-save hook (-C). Ansible at deploy and
+    # certmonger at renewal therefore execute identical logic — the two paths
+    # cannot drift, which is what made the previous inline copy go stale at the
+    # first renewal (~90 days in) while every playbook run still looked green.
+    - name: "Install the TLS publish/reload hook"
+      become: true  # root: writes an executable under /usr/local/libexec
+      ansible.builtin.template:
+        src: vault-tls-sync.sh.j2
+        dest: "{{ hashicorp_vault_tls_sync_script }}"
+        owner: root
+        group: root
+        mode: "0750"
+      register: _hashicorp_vault_tls_sync_script
 
-    # certmonger issues the LEAF only — a leaf-only tls_cert_file makes clients see
-    # just "vault-01" with no chain. ASSEMBLE vault.crt = leaf + CA so Vault
-    # SERVES the full chain (a client that trusts the FreeIPA CA then builds/displays
-    # FreeIPA-CA -> vault-01). Idempotent: copy compares the assembled content.
-    - name: "Read the on-host leaf cert + CA chain (to assemble the served fullchain)"
-      become: true  # root: reads the root-owned on-host cert + CA
-      ansible.builtin.slurp:
-        src: "{{ item }}"
-      loop:
-        - "{{ hashicorp_vault_tls_onhost_cert }}"
-        - "{{ hashicorp_vault_tls_onhost_ca }}"
-      register: _hashicorp_vault_onhost_pem
-      no_log: true
+    - name: "Check whether fapolicyd manages this host"
+      become: false  # read-only probe of a world-readable path
+      ansible.builtin.stat:
+        path: /usr/sbin/fapolicyd-cli
+      register: _hashicorp_vault_fapolicyd_cli
 
-    - name: "Assemble vault.crt = leaf + CA chain (full chain served to clients)"
-      become: true  # root: writes the assembled cert into the certs dir
-      ansible.builtin.copy:
-        content: "{{ (_hashicorp_vault_onhost_pem.results[0].content | b64decode | trim) ~ '\n'
-                     ~ (_hashicorp_vault_onhost_pem.results[1].content | b64decode | trim) ~ '\n' }}"
-        dest: "{{ hashicorp_vault_certs_dir }}/vault.crt"
-        owner: "{{ hashicorp_vault_uid }}"
-        group: "{{ hashicorp_vault_gid }}"
+    # fapolicyd blocks executing anything absent from its trust db, and it keys
+    # on the file HASH — so a re-templated script must be re-trusted or the
+    # renewal hook silently stops running under enforcing. `--file update` is
+    # a no-op when the path is untracked, hence the add fallback.
+    - name: "Trust the TLS hook in fapolicyd"
+      become: true  # root: updates the fapolicyd trust database
+      ansible.builtin.shell:
+        cmd: >-
+          fapolicyd-cli --file update {{ hashicorp_vault_tls_sync_script }}
+          || fapolicyd-cli --file add {{ hashicorp_vault_tls_sync_script }}
+      register: _hashicorp_vault_fapolicyd_trust
+      changed_when: _hashicorp_vault_fapolicyd_trust.rc == 0
+      failed_when: false
+      when:
+        - _hashicorp_vault_tls_sync_script is changed
+        - _hashicorp_vault_fapolicyd_cli.stat.exists
+      notify: Update the fapolicyd trust database
+
+    # certmonger_t cannot talk to docker.sock, so SIGHUP after a real renewal
+    # cannot live inside the post-save hook. A PathModified unit watches the
+    # published vault.crt and reloads Vault as init_t. Install BEFORE the first
+    # publish so the path unit is already armed when the script renames the file.
+    - name: "Install the TLS reload helper script"
+      become: true  # root: writes an executable under /usr/local/libexec
+      ansible.builtin.template:
+        src: vault-tls-reload.sh.j2
+        dest: "{{ hashicorp_vault_tls_reload_script }}"
+        owner: root
+        group: root
+        mode: "0750"
+      register: _hashicorp_vault_tls_reload_script
+
+    - name: "Trust the TLS reload helper in fapolicyd"
+      become: true  # root: updates the fapolicyd trust database
+      ansible.builtin.shell:
+        cmd: >-
+          fapolicyd-cli --file update {{ hashicorp_vault_tls_reload_script }}
+          || fapolicyd-cli --file add {{ hashicorp_vault_tls_reload_script }}
+      register: _hashicorp_vault_fapolicyd_reload_trust
+      changed_when: _hashicorp_vault_fapolicyd_reload_trust.rc == 0
+      failed_when: false
+      when:
+        - _hashicorp_vault_tls_reload_script is changed
+        - _hashicorp_vault_fapolicyd_cli.stat.exists
+      notify: Update the fapolicyd trust database
+
+    - name: "Install the TLS reload systemd service"
+      become: true  # root: writes /etc/systemd/system
+      ansible.builtin.template:
+        src: vault-tls-reload.service.j2
+        dest: /etc/systemd/system/vault-tls-reload.service
+        owner: root
+        group: root
         mode: "0644"
-      no_log: true
-      notify: Restart vault container
+      notify: Reload systemd
+
+    - name: "Install the TLS reload path unit"
+      become: true  # root: writes /etc/systemd/system
+      ansible.builtin.template:
+        src: vault-tls-reload.path.j2
+        dest: /etc/systemd/system/vault-tls-reload.path
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Reload systemd
+
+    - name: "Reload systemd so the TLS reload path unit is visible"
+      ansible.builtin.meta: flush_handlers
+
+    - name: "Enable and start the TLS reload path unit"
+      become: true  # root: manages a systemd unit
+      ansible.builtin.systemd_service:
+        name: vault-tls-reload.path
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    # Prints "unchanged" when the published material already matches, so this is
+    # genuinely idempotent and does not SIGHUP Vault on every run.
+    - name: "Publish the certmonger material into the container certs dir"
+      become: true  # root: reads root-owned cert material, writes the certs dir
+      ansible.builtin.command:
+        cmd: "{{ hashicorp_vault_tls_sync_script }}"
+      register: _hashicorp_vault_tls_sync
+      changed_when: "'unchanged' not in _hashicorp_vault_tls_sync.stdout"

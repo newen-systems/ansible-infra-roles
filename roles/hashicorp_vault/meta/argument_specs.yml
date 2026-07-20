@@ -169,50 +169,12 @@ argument_specs:
           secret_id_ttl}) upserted into approle. Empty = phase skipped. Roles are
           created only; role_id/secret_id retrieval is out of band.
         default: []
-      hashicorp_vault_gitlab_oidc_enabled:
-        type: bool
-        description: Enable + configure the oidc auth method for GitLab UI/CLI SSO.
-        default: false
-      hashicorp_vault_gitlab_oidc_mount_path:
-        type: str
-        description: Auth mount path for the oidc method.
-        default: "oidc"
       hashicorp_vault_gitlab_base_url:
         type: str
-        description: GitLab base URL (OIDC/JWT discovery + issuer). Required when either is enabled.
-        default: ""
-      hashicorp_vault_gitlab_oidc_discovery_url:
-        type: str
-        description: OIDC discovery URL; defaults to the GitLab base URL.
-        default: "{{ hashicorp_vault_gitlab_base_url }}"
-      hashicorp_vault_gitlab_oidc_client_id:
-        type: str
-        description: OIDC client id (declared-var first; else _client_id_vault_path).
-        default: ""
-      hashicorp_vault_gitlab_oidc_client_id_vault_path:
-        type: str
-        description: HC-Vault fallback for the client id ("mount/data/path:field").
-        default: ""
-      hashicorp_vault_gitlab_oidc_client_secret:
-        type: str
-        description: OIDC client secret (declared-var first; else _client_secret_vault_path).
-        default: ""
-      hashicorp_vault_gitlab_oidc_client_secret_vault_path:
-        type: str
-        description: HC-Vault fallback for the client secret ("mount/data/path:field").
-        default: ""
-      hashicorp_vault_gitlab_oidc_default_role:
-        type: str
-        description: Optional default oidc login role (empty = none).
-        default: ""
-      hashicorp_vault_gitlab_oidc_roles:
-        type: list
-        elements: dict
         description: >-
-          OIDC login roles ({name, user_claim, groups_claim, allowed_redirect_uris,
-          oidc_scopes, policies, ttl, max_ttl, bound_claims_type, bound_claims}).
-          Empty = no roles written.
-        default: []
+          GitLab base URL used as JWT issuer / OIDC discovery for the jwt auth
+          method (CI pipelines only). Human SSO is LDAP/FreeIPA, not GitLab OIDC.
+        default: ""
       hashicorp_vault_gitlab_jwt_enabled:
         type: bool
         description: Enable + configure the jwt auth method for GitLab CI pipelines.
@@ -244,6 +206,65 @@ argument_specs:
           allow_plaintext_backup, deletion_allowed, export_public_key: {mount, path}}).
           export_public_key publishes the public half to KV (full PUT). Empty = phase skipped.
         default: []
+      hashicorp_vault_pki_enabled:
+        type: bool
+        description: >-
+          Enable the PKI secrets engine (mount if absent, tune max_lease_ttl on
+          drift, upsert hashicorp_vault_pki_roles). Does not mint or import an
+          intermediate issuer — use roles/vault_pki for that lifecycle.
+        default: true
+      hashicorp_vault_pki_mount:
+        type: str
+        description: Mount path for the PKI secrets engine.
+        default: "pki"
+      hashicorp_vault_pki_mount_description:
+        type: str
+        description: Description applied only when enabling an absent mount.
+        default: "PKI secrets engine"
+      hashicorp_vault_pki_max_lease_ttl_hours:
+        type: int
+        description: Mount-wide max_lease_ttl in hours (tuned on drift only).
+        default: 87600
+      hashicorp_vault_pki_roles:
+        type: list
+        elements: dict
+        description: >-
+          PKI issuing roles ({name, config}) full-replace written to
+          <mount>/roles/<name>. config is passed as vault-write fields
+          (lists comma-joined). Empty = mount/tune only.
+        default: []
+      hashicorp_vault_pki_issuer_import:
+        type: bool
+        description: >-
+          Import an escrowed, pre-signed issuing CA into the pki/ mount (import
+          issuing cert+key and root cert, set the default issuer, optional AIA/CRL
+          URLs, self-verify by fingerprint). Runs after the pki phase. Off = no-op.
+        default: false
+      hashicorp_vault_pki_issuer_cert:
+        type: str
+        description: >-
+          Issuing CA PEM certificate (from the Ansible-Vault-encrypted escrow).
+          Required when hashicorp_vault_pki_issuer_import is true.
+        default: ""
+      hashicorp_vault_pki_issuer_key:
+        type: str
+        description: >-
+          Issuing CA PEM private key (unencrypted; passed to Vault only over stdin,
+          never argv). Required when hashicorp_vault_pki_issuer_import is true.
+        default: ""
+      hashicorp_vault_pki_root_cert:
+        type: str
+        description: >-
+          Public root CA PEM certificate, imported cert-only so the mount can build
+          the full ca_chain. Required when hashicorp_vault_pki_issuer_import is true.
+        default: ""
+      hashicorp_vault_pki_urls:
+        type: dict
+        description: >-
+          Optional AIA/CRL URL config written to <mount>/config/urls (drift only):
+          {issuing_certificates, crl_distribution_points, ocsp_servers} as lists.
+          Only the keys present are compared/written. Empty = URLs left unmanaged.
+        default: {}
       hashicorp_vault_audit_enabled:
         type: bool
         description: Enable the file audit device (writes under /vault/logs, persisted).

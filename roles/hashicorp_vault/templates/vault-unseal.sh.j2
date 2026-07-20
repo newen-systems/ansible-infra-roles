@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 {{ ansible_managed | comment }}
-# hashicorp_vault — unseal Vault on boot (systemd oneshot).
+# hashicorp_vault_container — unseal Vault on boot (systemd oneshot).
 # Waits for the container's API, then feeds the threshold unseal keys until the
 # node reports unsealed. Installed + enabled ONLY when hashicorp_vault_auto_unseal.
 set -euo pipefail

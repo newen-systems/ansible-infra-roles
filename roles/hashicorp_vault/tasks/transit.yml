@@ -8,7 +8,7 @@
 # Keys are DATA (hashicorp_vault_transit_keys) — define them in inventory, e.g.:
 #   - name: cosign
 #     type: ecdsa-p256                       # default
-#     export_public_key: {mount: secret, path: platform/cosign/runtime}
+#     export_public_key: {mount: kv-ops, path: platform/cosign/runtime}
 #
 # All writes go via docker exec on the first node with the root token in the
 # process env (never argv); writes forward to the active leader. The exported

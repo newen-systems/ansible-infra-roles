@@ -55,4 +55,21 @@
   run_once: true
   delegate_to: "{{ hashicorp_vault_first_node }}"
   when: _hashicorp_vault_init is changed
+
+# Seed the standalone Raft node_id stamp at first init so the next re-run does
+# not rewrite peers.json (empty stamp would otherwise look like a rename). Real
+# renames still rewrite because deploy.yml compares stamp to inventory_hostname.
+- name: "Standalone | Stamp Raft node_id after first init"
+  become: true  # root: stamp lives next to vault-owned data
+  ansible.builtin.copy:
+    dest: "{{ hashicorp_vault_data_dir }}/.ansible_raft_node_id"
+    owner: root
+    group: root
+    mode: "0644"
+    content: "{{ inventory_hostname }}\n"
+  run_once: true
+  delegate_to: "{{ hashicorp_vault_first_node }}"
+  when:
+    - _hashicorp_vault_init is changed
+    - not (hashicorp_vault_is_ha | bool)
 # Unsealing + cluster formation continue in unseal.yml (tag `unseal`).

@@ -1,5 +1,5 @@
 {{ ansible_managed | comment }}
-# docker-compose.yml — hashicorp_vault
+# docker-compose.yml — hashicorp_vault_container
 # Bridge network with published ports: peers reach a node on <node>:{{ hashicorp_vault_api_port }}
 # / :{{ hashicorp_vault_cluster_port }}. Portable across engines (host networking is
 # unreliable on some — e.g. Colima/Docker Desktop).

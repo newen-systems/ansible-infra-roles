@@ -1,6 +1,6 @@
 {{ ansible_managed | comment }}
 [Unit]
-Description=hashicorp_vault — unseal Vault on boot
+Description=hashicorp_vault_container — unseal Vault on boot
 After=docker.service network-online.target
 Wants=network-online.target
 Documentation=https://developer.hashicorp.com/vault/docs/concepts/seal

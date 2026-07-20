@@ -1,5 +1,5 @@
 ---
-# hashicorp_vault — behavioural defaults (all overridable).
+# hashicorp_vault_container — behavioural defaults (all overridable).
 #
 # Env-specific values (node IPs, domains, VIPs) are NOT set here — they come
 # from inventory. The topology auto-scales from the hosts in the play, so a
@@ -71,7 +71,7 @@ hashicorp_vault_tls_enabled: true
 hashicorp_vault_tls_generate: true
 # Where the generated CA/key persist on the CONTROLLER so re-runs reuse the
 # same CA (stable trust). Kept outside the repo — never commit it.
-hashicorp_vault_tls_local_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/hashicorp_vault/tls"
+hashicorp_vault_tls_local_dir: "{{ lookup('ansible.builtin.env', 'HOME') }}/.local/share/hashicorp_vault_container/tls"
 hashicorp_vault_tls_ca_cert: ""      # consulted only when hashicorp_vault_tls_generate=false
 hashicorp_vault_tls_server_cert: ""
 hashicorp_vault_tls_server_key: ""
@@ -83,6 +83,15 @@ hashicorp_vault_tls_onhost: false
 hashicorp_vault_tls_onhost_cert: ""    # e.g. /etc/pki/tls/vault/vault.crt (certmonger)
 hashicorp_vault_tls_onhost_key: ""     # e.g. /etc/pki/tls/vault/vault.key
 hashicorp_vault_tls_onhost_ca: ""      # e.g. /etc/ipa/ca.crt (FreeIPA CA chain)
+
+# Publishes leaf+CA into the certs dir and SIGHUPs Vault. Ansible runs it at
+# deploy; wire the SAME path as certmonger's post-save hook so renewals follow
+# the identical code path:
+#   freeipa_client_service_certs: [{..., postsave: /usr/local/libexec/vault-tls-sync}]
+hashicorp_vault_tls_sync_script: /usr/local/libexec/vault-tls-sync
+# Systemd path unit + oneshot that SIGHUPs Vault when the published cert
+# changes. Load-bearing under certmonger_t (which cannot use docker.sock).
+hashicorp_vault_tls_reload_script: /usr/local/libexec/vault-tls-reload
 hashicorp_vault_tls_cn: "vault"
 hashicorp_vault_tls_validity_days: 3650
 # Extra SANs. Node IPs + short hostnames are added automatically; add FQDNs
@@ -136,11 +145,12 @@ hashicorp_vault_admin_kv_mounts: []
 #   - kv-acme-prod
 #   - kv-globex-dev
 
-# ── LDAP auth (optional; FreeIPA in this estate) ────────────────────────
-# Group naming: a tenant's LDAP group defaults to "vault-<tenant>-<env>", mapped
-# to policies [default, <tenant>-<env>]. Add non-tenant groups via _extra_groups.
+# ── LDAP auth / human SSO (optional; FreeIPA in this lab) ────────────
+# Human operator login for this role — not GitLab OIDC. Group naming: a tenant's
+# LDAP group defaults to "vault-<tenant>-<env>", mapped to policies
+# [default, <tenant>-<env>]. Add non-tenant groups via _extra_groups.
 hashicorp_vault_ldap_enabled: false
-hashicorp_vault_ldap_url: ""                     # e.g. ldaps://10.0.0.11
+hashicorp_vault_ldap_url: ""                     # e.g. ldaps://10.0.10.11
 hashicorp_vault_ldap_binddn: ""
 hashicorp_vault_ldap_bindpass: ""                # declared-var-first (ansible-vault)
 hashicorp_vault_ldap_bindpass_vault_path: ""     # HC-Vault fallback: "mount/path:field"
@@ -160,17 +170,17 @@ hashicorp_vault_ldap_users: []
 #   - {ldap_username: long, policies: [default, vault-admin]}
 
 # ── Identity groups (cross-auth-method RBAC layer, optional) ──────────────
-# Vault Identity groups. EXTERNAL groups map an auth-method group (LDAP now, OIDC
-# later) to policies via a group-alias, so the SAME policies apply regardless of
-# login method. INTERNAL groups have explicit membership and can NEST other groups
-# (member_group_names) for indirect inheritance (e.g. an "admin-all" parent).
+# Vault Identity groups. EXTERNAL groups map an LDAP (FreeIPA) group to policies
+# via a group-alias (human SSO path for this role). INTERNAL groups have explicit
+# membership and can NEST other groups (member_group_names) for indirect
+# inheritance (e.g. an "admin-all" parent).
 #   external: {identity_group_name, type: external, ldap_group, policies}
 #   internal: {identity_group_name, type: internal, policies, member_group_names}
 # type defaults to external. Requires hashicorp_vault_ldap_enabled for the alias.
 hashicorp_vault_identity_groups: []
-#   - {identity_group_name: acme-prod-admins, ldap_group: vault-acme-prod, policies: [acme-prod]}
+#   - {identity_group_name: example-prod-admins, ldap_group: vault-example-prod, policies: [example-prod]}
 #   - {identity_group_name: platform-superadmins, type: internal, policies: [vault-superadmin],
-#      member_group_names: [acme-prod-admins]}
+#      member_group_names: [example-prod-admins]}
 
 # ── Human operator accounts (userpass, optional) ─────────────────────────
 # Data-driven; empty = phase skipped. Keep passwords in a VAULTED inventory /
@@ -188,34 +198,12 @@ hashicorp_vault_userpass_accounts: []
 hashicorp_vault_approles: []
 #   - {role_name: svc-ansible, policies: [svc-automation], token_ttl: 4h, token_max_ttl: 12h}
 
-# ── GitLab OIDC / SSO (optional) ─────────────────────────────────────────
-# Enable the oidc auth method so operators log into the Vault UI/CLI with their
-# GitLab identity. client_id/secret come from a GitLab OAuth application (created
-# out of band): resolved declared-var-first, HC-Vault as a lazy fallback (ADR-0011);
-# the secret is passed to Vault over stdin. Roles are data — empty = phase skipped.
-hashicorp_vault_gitlab_oidc_enabled: false
-hashicorp_vault_gitlab_oidc_mount_path: "oidc"
-# Discovery URL + issuer default to the GitLab base URL (shared with JWT below).
-hashicorp_vault_gitlab_base_url: ""
-hashicorp_vault_gitlab_oidc_discovery_url: "{{ hashicorp_vault_gitlab_base_url }}"
-hashicorp_vault_gitlab_oidc_client_id: ""            # declared-var first
-hashicorp_vault_gitlab_oidc_client_id_vault_path: ""     # HC-Vault fallback "mount/data/path:field"
-hashicorp_vault_gitlab_oidc_client_secret: ""        # declared-var first
-hashicorp_vault_gitlab_oidc_client_secret_vault_path: ""  # HC-Vault fallback "mount/data/path:field"
-hashicorp_vault_gitlab_oidc_default_role: ""         # optional default login role
-hashicorp_vault_gitlab_oidc_roles: []
-#   - name: gitlab
-#     user_claim: sub
-#     groups_claim: groups_direct
-#     allowed_redirect_uris: ["https://vault.example.com:8200/ui/vault/auth/oidc/oidc/callback"]
-#     oidc_scopes: [openid, profile, email]
-#     policies: [ops-admin]
-#     bound_claims: {groups_direct: ["infra/platform-admins"]}
-
 # ── GitLab CI JWT (optional) ─────────────────────────────────────────────
-# Enable the jwt auth method so GitLab CI jobs exchange their pipeline JWT for a
-# scoped Vault token. Roles are data — empty = phase skipped. bound_audiences
-# defaults to _default_audience when a role omits it (empty = no audience binding).
+# Pipeline JWT->token exchange only. Human SSO for this role is LDAP/FreeIPA
+# (hashicorp_vault_ldap_*), not GitLab OIDC — that path was removed.
+# Roles are data — empty = phase skipped. bound_audiences defaults to
+# _default_audience when a role omits it (empty = no audience binding).
+hashicorp_vault_gitlab_base_url: ""              # GitLab issuer / OIDC discovery for jwt
 hashicorp_vault_gitlab_jwt_enabled: false
 hashicorp_vault_gitlab_jwt_default_audience: ""
 hashicorp_vault_gitlab_jwt_roles: []
@@ -237,7 +225,48 @@ hashicorp_vault_transit_keys: []
 #   - name: cosign
 #     type: ecdsa-p256          # default
 #     exportable: false          # default (private key never leaves Vault)
-#     export_public_key: {mount: secret, path: platform/cosign/runtime}
+#     export_public_key: {mount: kv-ops, path: platform/cosign/runtime}
+
+# ── PKI secrets engine (mount + tune + issuing roles) ────────────────────
+# Converge-safe bootstrap of the PKI engine on this cluster (same surface as
+# vault_pki's no-tag converge: enable if absent, tune max_lease_ttl on drift,
+# upsert hashicorp_vault_pki_roles). ON by default so a new container Vault has
+# a pki/ mount ready for issuer import.
+#
+# Does NOT generate or import the intermediate issuer — intermediate/generate/internal
+# mints a NEW private key on every call. Issuer lifecycle stays in roles/vault_pki
+# + playbooks/25_plat_pki.yml (never-tagged vault_pki_csr / vault_pki_set_signed).
+hashicorp_vault_pki_enabled: true
+hashicorp_vault_pki_mount: "pki"
+hashicorp_vault_pki_mount_description: "PKI secrets engine"
+hashicorp_vault_pki_max_lease_ttl_hours: 87600   # 10y mount ceiling
+hashicorp_vault_pki_roles: []
+#   - name: int-example-org
+#     config:
+#       allowed_domains: ["int.example.org"]
+#       allow_subdomains: true
+#       allow_wildcard_certificates: true
+#       max_ttl: "8760h"
+
+# ── PKI issuing-CA import (escrowed, pre-signed issuer; OPTIONAL, off) ─────
+# Adopt an issuing CA produced by a separate offline ceremony into the pki/ mount:
+# import the issuing cert + its key, import the public root cert (for ca_chain),
+# set the mount default issuer to it, optionally configure AIA/CRL URLs, and
+# self-verify by certificate fingerprint. Runs AFTER the pki phase (mount must
+# exist). Off by default so a bare converge imports nothing.
+#
+# The three PEM values come from an Ansible-Vault-encrypted escrow in inventory;
+# map that escrow onto these role-prefixed vars (the role never references the
+# ceremony's own var names). The private key travels only over stdin, never argv.
+hashicorp_vault_pki_issuer_import: false
+hashicorp_vault_pki_issuer_cert: ""      # issuing CA PEM certificate
+hashicorp_vault_pki_issuer_key: ""       # issuing CA PEM private key (unencrypted)
+hashicorp_vault_pki_root_cert: ""        # public root CA PEM certificate
+# Optional AIA / CRL distribution URLs written to <mount>/config/urls (drift only).
+# Only the keys you set are compared/written — unmanaged keys are left untouched.
+hashicorp_vault_pki_urls: {}
+#   issuing_certificates: ["https://vault.{{ env }}.{{ domain }}:8200/v1/pki/ca"]
+#   crl_distribution_points: ["https://vault.{{ env }}.{{ domain }}:8200/v1/pki/crl"]
 
 # ── Audit logging (optional) ─────────────────────────────────────────────
 # Enable the file audit device. It writes INSIDE the container to _audit_path

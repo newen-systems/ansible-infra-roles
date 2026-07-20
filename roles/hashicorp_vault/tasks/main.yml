@@ -1,5 +1,5 @@
 ---
-# hashicorp_vault — self-contained, auto-scaling containerized Vault.
+# hashicorp_vault_container — self-contained, auto-scaling containerized Vault.
 #
 # Deploys HashiCorp Vault as a Docker container with all state on a persistent
 # second disk. Topology scales with the play's host count:
@@ -76,11 +76,6 @@
   when: hashicorp_vault_approles | length > 0
   tags: [approle]
 
-- name: "GitLab OIDC — UI/CLI SSO via the oidc auth method (optional)"
-  ansible.builtin.import_tasks: gitlab_oidc.yml
-  when: hashicorp_vault_gitlab_oidc_enabled | bool
-  tags: [gitlab_oidc, gitlab_sso]
-
 - name: "GitLab CI JWT — pipeline JWT->token exchange via the jwt auth method (optional)"
   ansible.builtin.import_tasks: gitlab_jwt.yml
   when: hashicorp_vault_gitlab_jwt_enabled | bool
@@ -90,6 +85,16 @@
   ansible.builtin.import_tasks: transit.yml
   when: hashicorp_vault_transit_enabled | bool
   tags: [transit, cosign]
+
+- name: "PKI — secrets engine mount + tune + issuing roles (optional)"
+  ansible.builtin.import_tasks: pki.yml
+  when: hashicorp_vault_pki_enabled | bool
+  tags: [pki]
+
+- name: "PKI-issuer — import an escrowed issuing CA + set default issuer (optional)"
+  ansible.builtin.import_tasks: pki_issuer.yml
+  when: hashicorp_vault_pki_issuer_import | bool
+  tags: [pki_issuer]
 
 - name: "Audit — enable the file audit device (optional)"
   ansible.builtin.import_tasks: audit.yml
@@ -112,3 +117,9 @@
 - name: "Restore — roll back to a Raft snapshot (opt-in, destructive)"
   ansible.builtin.import_tasks: restore.yml
   tags: [never, restore]
+
+# Non-destructive, but forces a real certificate re-issue, so it is opt-in
+# rather than part of a normal converge.
+- name: "Renew-drill — prove the certmonger renewal path today, not in 90 days (opt-in)"
+  ansible.builtin.import_tasks: renew_drill.yml
+  tags: [never, renew_drill]

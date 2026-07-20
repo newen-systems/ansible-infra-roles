@@ -1,9 +1,8 @@
 ---
 # Identity — Vault Identity groups: the cross-auth-method RBAC layer. Optional,
 # data-driven, idempotent. Two group types (hashicorp_vault_identity_groups):
-#   external: membership comes from an auth-method group (LDAP now, OIDC later) via
-#             a group-alias -> the SAME identity group + policies apply no matter
-#             how the user logs in.
+#   external: membership comes from an LDAP (FreeIPA) group via a group-alias —
+#             the same identity group + policies apply for LDAP logins.
 #             {identity_group_name, type: external, ldap_group, policies}
 #   internal: explicit membership; can NEST other identity groups for indirect
 #             inheritance (a parent's policies flow to child-group members).

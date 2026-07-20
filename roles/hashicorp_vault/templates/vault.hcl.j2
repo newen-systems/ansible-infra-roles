@@ -1,5 +1,5 @@
 {{ ansible_managed | comment }}
-# vault.hcl — hashicorp_vault
+# vault.hcl — hashicorp_vault_container
 # Topology: {{ 'Raft HA across ' ~ hashicorp_vault_node_count ~ ' nodes' if hashicorp_vault_is_ha | bool else 'standalone (single server)' }}
 
 storage "raft" {

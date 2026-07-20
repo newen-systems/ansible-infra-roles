@@ -1,7 +1,7 @@
 ---
 galaxy_info:
-  role_name: hashicorp_vault
-  author: estate
+  role_name: hashicorp_vault_container
+  author: lab
   description: >-
     Self-contained, auto-scaling containerized HashiCorp Vault. Runs Vault as
     a Docker container with all state on a persistent second disk, deriving a
