@@ -31,8 +31,8 @@
 #   (none)  raw user config — this file and its config companions
 #   _one    derived + EXPOSED — the contract in _networks_derived.yml.
 #           The headline is `_net`, keyed by output NAMESPACE:
-#             _net.esxi.port_groups            list of rows
-#             _net.dell.vlans                  list of rows
+#             _net.hypervisor.port_groups            list of rows
+#             _net.switches.vlans                  list of rows
 #             _net.edge.zones                  list of rows
 #             _net.firewall.vlans['site-a']     grouped view → dict per site
 #           plus _segments, _segments_by.<field>.<value>,
@@ -44,7 +44,7 @@
 #
 # Inventory only *selects* which segment is this env's primary:
 #   network_gateway:    "{{ network_underlays.mgt.gateway }}"
-#   vsphere_vm_network: "{{ _name_by_key.mgt }}"
+#   guest_vm_network:   "{{ _name_by_key.mgt }}"
 #
 # The object is `network_underlays` — plural, and the only name for it.
 #
@@ -78,18 +78,18 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.0.1"
     dns: ["10.168.0.1"]
-    platforms: [esxi, switches]
+    platforms: [hypervisor, switches]
     role: infra
     site: site-a
     zone: infra
     description: "site infrastructure — hypervisor management adjacency"
     operator_source: true
-    esxi_num_ports: 15
+    hv_num_ports: 15
     # A promiscuous-capable port group: the only rows that emit a `security`
-    # block in the vCenter view (see emit_when_any in networks_platforms.yml).
-    esxi_allow_promiscuous: true
-    esxi_allow_forged_transmits: true
-    esxi_allow_mac_change: true
+    # block in the hypervisor manager view (see emit_when_any in networks_platforms.yml).
+    hv_allow_promiscuous: true
+    hv_allow_forged_transmits: true
+    hv_allow_mac_change: true
 
   site_b_infra:
     vlan_id: 0
@@ -115,16 +115,16 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.10.1"
     dns: ["10.168.10.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: mgt
     role: svc
     site: site-a
     zone: mgt
     description: "management services plane"
     operator_source: true
-    firewall_parent: vmx1
-    firewall_descr: "V10_MGT_SVC"
-    wifi_name: "V10_MGT_SVC"
+    fw_parent: uplink0
+    fw_descr: "V10_MGT_SVC"
+    wifi_net_name: "V10_MGT_SVC"
     wifi_site: sa
 
   mgt_cluster:
@@ -133,15 +133,15 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.11.1"
     dns: ["10.168.11.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: mgt
     role: cluster
     site: site-a
     zone: mgt
     description: "management cluster plane"
-    firewall_parent: vmx1
-    firewall_descr: "V11_MGT_CLUSTER"
-    wifi_name: "V11_MGT_CLUSTER"
+    fw_parent: uplink0
+    fw_descr: "V11_MGT_CLUSTER"
+    wifi_net_name: "V11_MGT_CLUSTER"
     wifi_site: sa
 
   # ── Development plane ─────────────────────────────────────────────────────
@@ -151,15 +151,15 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.20.1"
     dns: ["10.168.20.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: dev
     role: svc
     site: site-a
     zone: dev
     description: "dev services plane"
-    firewall_parent: vmx1
-    firewall_descr: "V20_DEV_SVC"
-    wifi_name: "V20_DEV_SVC"
+    fw_parent: uplink0
+    fw_descr: "V20_DEV_SVC"
+    wifi_net_name: "V20_DEV_SVC"
     wifi_site: sa
 
   dev_cluster:
@@ -168,15 +168,15 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.21.1"
     dns: ["10.168.21.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: dev
     role: cluster
     site: site-a
     zone: dev
     description: "dev cluster plane"
-    firewall_parent: vmx1
-    firewall_descr: "V21_DEV_CLUSTER"
-    wifi_name: "V21_DEV_CLUSTER"
+    fw_parent: uplink0
+    fw_descr: "V21_DEV_CLUSTER"
+    wifi_net_name: "V21_DEV_CLUSTER"
     wifi_site: sa
 
   # ── Production plane ──────────────────────────────────────────────────────
@@ -186,15 +186,15 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.30.1"
     dns: ["10.168.30.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: prod
     role: svc
     site: site-a
     zone: prod
     description: "production services plane"
-    firewall_parent: vmx1
-    firewall_descr: "V30_PROD_SVC"
-    wifi_name: "V30_PROD_SVC"
+    fw_parent: uplink0
+    fw_descr: "V30_PROD_SVC"
+    wifi_net_name: "V30_PROD_SVC"
     wifi_site: sa
 
   prod_cluster:
@@ -203,15 +203,15 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.31.1"
     dns: ["10.168.31.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     env: prod
     role: cluster
     site: site-a
     zone: prod
     description: "production cluster plane"
-    firewall_parent: vmx1
-    firewall_descr: "V31_PROD_CLUSTER"
-    wifi_name: "V31_PROD_CLUSTER"
+    fw_parent: uplink0
+    fw_descr: "V31_PROD_CLUSTER"
+    wifi_net_name: "V31_PROD_CLUSTER"
     wifi_site: sa
 
   # ── DMZ ───────────────────────────────────────────────────────────────────
@@ -221,14 +221,14 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.9.1"
     dns: ["10.168.9.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     role: dmz
     site: site-a
     zone: dmz
     description: "internet-facing DMZ"
-    firewall_parent: vmx1
-    firewall_descr: "V09_DMZ"
-    wifi_name: "V09_DMZ"
+    fw_parent: uplink0
+    fw_descr: "V09_DMZ"
+    wifi_net_name: "V09_DMZ"
     wifi_site: sa
 
   # ── Per-tenant segments — the `tenancy` token drives the name ────────────
@@ -238,7 +238,7 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.2.1"
     dns: ["10.168.2.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     tenancy: acme
     role: tenant
     site: site-a
@@ -246,9 +246,9 @@ network_underlays:
     description: "tenant segment — the name comes from the tenancy token"
     # name_parts overrides the estate default recipe for this segment only.
     name_parts: [vlan, tenancy]
-    firewall_parent: vmx1
-    firewall_descr: "V02_ACME"
-    wifi_name: "V02_ACME"
+    fw_parent: uplink0
+    fw_descr: "V02_ACME"
+    wifi_net_name: "V02_ACME"
     wifi_site: sa
 
   tenant_globex:
@@ -257,16 +257,16 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.3.1"
     dns: ["10.168.3.1"]
-    platforms: [esxi, firewall, switches, wifi, edge]
+    platforms: [hypervisor, firewall, switches, wifi, edge]
     tenancy: globex
     role: tenant
     site: site-a
     zone: tenant
     description: "second tenant segment"
     name_parts: [vlan, tenancy]
-    firewall_parent: vmx1
-    firewall_descr: "V03_GLOBEX"
-    wifi_name: "V03_GLOBEX"
+    fw_parent: uplink0
+    fw_descr: "V03_GLOBEX"
+    wifi_net_name: "V03_GLOBEX"
     wifi_site: sa
 
   # ── Second-site lab — produces a site-b row in the grouped views ─────────
@@ -282,9 +282,9 @@ network_underlays:
     zone: lab
     description: "remote-site lab — appears under _net.firewall.vlans['site-b']"
     name_suffix: sb
-    firewall_parent: vmx1
-    firewall_descr: "V100_LAB_SB"
-    wifi_name: "V100_LAB_SB"
+    fw_parent: uplink0
+    fw_descr: "V100_LAB_SB"
+    wifi_net_name: "V100_LAB_SB"
     wifi_site: sb
 
   # ── A pinned name — the escape hatch no token set can express ────────────
@@ -296,11 +296,11 @@ network_underlays:
     netmask: "255.255.255.0"
     gateway: "10.168.50.1"
     dns: ["10.168.50.1"]
-    platforms: [esxi, switches]
+    platforms: [hypervisor, switches]
     role: storage
     site: site-a
     zone: infra
-    description: "pre-existing port group — renaming it on the vDS is not free"
+    description: "pre-existing port group — renaming it on the distributed switch is not free"
     name: "VLAN50-LEGACY-STORAGE-DO-NOT-RENAME"
 
   # ── Documented but applied nowhere ───────────────────────────────────────
@@ -327,7 +327,7 @@ network_underlays:
 # with the gateway at gateway_offset.
 #
 # platforms: [catalog_only] keeps the demo from queueing 20 port groups onto a
-# real vDS. Set it to [esxi, switches] to actually reconcile them.
+# real distributed switch. Set it to [hypervisor, switches] to actually reconcile them.
 network_segment_pools:
   acme_lab:
     tenant: acme
