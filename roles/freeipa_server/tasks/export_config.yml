@@ -105,7 +105,7 @@
       (freeipa.config.snapshot*.yml) is gitignored — a custom filename here is one
       broad `git add` away from committing the realm's full user/group/rule
       inventory. Move it out of the repo or confirm it stays untracked.
-  when: (playbook_dir | dirname | dirname) in _freeipa_export_output
+  when: (playbook_dir | dirname) in _freeipa_export_output
 
 - name: Export | Render the snapshot group_vars file on the control node
   ansible.builtin.template:

@@ -9,3 +9,5 @@ rules:
   # {key: x} and the spaced { key: x } / [ a, b ] forms are accepted.
   braces: {min-spaces-inside: 0, max-spaces-inside: 1}
   brackets: {min-spaces-inside: 0, max-spaces-inside: 1}
+  # Aligned values after a colon are used in tables of settings and logger specs.
+  colons: {max-spaces-before: 0, max-spaces-after: -1}

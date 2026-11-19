@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-MODULE_PATH = (REPO_ROOT / "ansible" / "roles" / "splunk_config"
+REPO_ROOT = Path(__file__).resolve().parents[4]
+MODULE_PATH = (REPO_ROOT / "roles" / "splunk_config"
                / "files" / "splunk_config_export.py")
 
 
@@ -264,7 +264,7 @@ def test_resolve_etc_host_prefers_etc_destination(tmp_path):
     """Host-side fallback: pick /opt/splunk/etc volume under /var/lib/docker."""
     import importlib.util
 
-    path = (REPO_ROOT / "ansible" / "roles" / "splunk_config"
+    path = (REPO_ROOT / "roles" / "splunk_config"
             / "files" / "resolve_etc_host.py")
     spec = importlib.util.spec_from_file_location("resolve_etc_host", path)
     mod = importlib.util.module_from_spec(spec)
@@ -295,7 +295,7 @@ def test_resolve_etc_host_prefers_etc_destination(tmp_path):
 def test_resolve_etc_host_reconstructs_volume_path_when_source_empty(tmp_path):
     import importlib.util
 
-    path = (REPO_ROOT / "ansible" / "roles" / "splunk_config"
+    path = (REPO_ROOT / "roles" / "splunk_config"
             / "files" / "resolve_etc_host.py")
     spec = importlib.util.spec_from_file_location("resolve_etc_host", path)
     mod = importlib.util.module_from_spec(spec)

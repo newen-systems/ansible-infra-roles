@@ -91,7 +91,7 @@ git_status:
 Copy `get_cli_args.py` into your playbook repo's `plugins/action/` directory:
 
 ```bash
-cp scratchpad/ansible/plugins/action/get_cli_args.py \
+cp ansible-infra-roles/plugins/action/get_cli_args.py \
    your-repo/plugins/action/get_cli_args.py
 ```
 

@@ -57,8 +57,8 @@ def render(expr: str, variables: dict) -> Any:
     return Templar(loader=DataLoader(), variables=scope).template(
         trust_as_template(expr))
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ROLE = REPO_ROOT / "ansible" / "roles" / "freeipa_server"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROLE = REPO_ROOT / "roles" / "freeipa_server"
 
 
 @pytest.fixture(scope="module")

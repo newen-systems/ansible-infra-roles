@@ -30,8 +30,8 @@ except ImportError:  # <= 2.18 has no trust model; strings are templated as-is
     def trust_as_template(value: Any) -> Any:
         return value
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-TASKS = REPO_ROOT / "ansible" / "roles" / "freeipa_server" / "tasks" / "export_config.yml"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+TASKS = REPO_ROOT / "roles" / "freeipa_server" / "tasks" / "export_config.yml"
 
 
 def render(expr: str, variables: dict[str, Any]) -> Any:
@@ -108,15 +108,15 @@ def test_cwd_var_reads_pwd_with_playbook_dir_fallback(tasks):
 
 
 @pytest.mark.parametrize("resolved,inside", [
-    ("/repo/exports/snap.yml", True),          # repo root (playbook_dir/../..)
-    ("/repo/ansible/playbooks/snap.yml", True),
+    ("/repo/exports/snap.yml", True),          # repo root (playbook_dir/..)
+    ("/repo/playbooks/snap.yml", True),
     ("/tmp/snap.yml", False),
     ("/home/op/work/snap.yml", False),
 ])
 def test_repo_tree_warning_condition(warn_when, resolved, inside):
     got = render(warn_when, {
         "_freeipa_export_output": resolved,
-        "playbook_dir": "/repo/ansible/playbooks",
+        "playbook_dir": "/repo/playbooks",
     })
     assert got is inside or str(got) == str(inside)
 

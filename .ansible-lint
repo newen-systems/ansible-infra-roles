@@ -1,7 +1,20 @@
 ---
-# Mirrors the origin repo policy: correctness-only (profile: min) — parse / load /
-# module-resolution / syntax-check. Style rules (yaml line-length, var-naming,
-# risky-shell-pipe, fqcn, jinja formatting) are deferred, exactly as the
-# freeipa_server role is linted in its source repo.
+# Correctness-only (profile: min): parse, load, module resolution and
+# syntax-check. Style rules (yaml line-length, var-naming, risky-shell-pipe,
+# fqcn, jinja formatting) are deferred.
 profile: min
 offline: true
+# Not runnable playbooks, so `syntax-check` cannot apply to them:
+#  - audit_*.yml are copy-and-edit templates that name placeholder roles
+#    (your_role_here, mock_network).
+#  - networks_views.yml and pools.yml are data files the network catalog reads,
+#    not playbooks. They live here because the catalog resolves them from
+#    playbook_dir.
+exclude_paths:
+  - playbooks/audit_multi_logger.yml
+  - playbooks/audit_multi_play.yml
+  - playbooks/audit_semaphore.yml
+  - playbooks/audit_single_logger.yml
+  - playbooks/networks_views.yml
+  - playbooks/pools.yml
+  - collections/ansible_collections/

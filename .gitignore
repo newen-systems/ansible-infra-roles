@@ -1,0 +1,91 @@
+# ── Local agent harness and tooling notes: never publish ─────────────────────
+.agent/
+.agents/
+AGENTS.md
+CLAUDE.md
+docs/superpowers/
+
+# ── OS and editor cruft ──────────────────────────────────────────────────────
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*~
+
+# ── Secrets and credentials ──────────────────────────────────────────────────
+# Secret DATA, not source. These are substring rules, so the negations below
+# keep role code whose file NAME merely contains one of the words.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.crt
+*.cer
+*.der
+*.gpg
+*.asc
+known_hosts
+*secret*
+*password*
+*credentials*
+*token*
+*.env
+.env.*
+!.env.example
+*.vault
+vault_pass*
+vault-pass*
+.vault_pass*
+vault-credentials/
+group_vars/*/vault*
+inventory/host_vars/*/vault*
+*kubeconfig*
+
+# Role CODE reads a credential at runtime and contains none. A tasks, handlers
+# or templates file must not be dropped because its name contains "secret" or
+# "token": a missing task file fails import_tasks at parse time on a clean clone.
+!roles/*/tasks/**
+!roles/*/handlers/**
+!roles/*/templates/**
+!**/tasks/*.yml
+
+# ── Logs, temp, archives ─────────────────────────────────────────────────────
+*.log
+tmp/
+*.tmp
+*.bak
+*.orig
+*.tar
+*.tar.gz
+*.tgz
+*.zip
+
+# ── Python and test output ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+tests/output/
+
+# ── Ansible ──────────────────────────────────────────────────────────────────
+*.retry
+.ansible/
+# Installed collections: re-installable from collections/requirements.yml.
+collections/ansible_collections/
+ansible_collections/
+
+# Live-instance exports and captures: real configuration, never commit.
+**/files/state/*/artifactory.*
+artifactory-as-built*.yml
+examples/inventories/**/local.yml
+**/freeipa.config.snapshot.yml
+*.live.yml
+trial-backups/
+_trial-backup/

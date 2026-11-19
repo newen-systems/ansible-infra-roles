@@ -471,8 +471,8 @@ freeipa_iam_builtin_pwpolicies: ["global_policy"]
 #
 # BOTH DEFAULT TO EMPTY, DELIBERATELY. This role is product-agnostic: it must not ship
 # patterns for any particular third-party product. Declare the patterns for whatever writes
-# to YOUR realm in inventory (host_vars/group_vars) — see the repo rule "Product-Agnostic
-# Roles" in the repo rules. Keep them in lockstep with that inventory's export exclusions
+# to YOUR realm in inventory (host_vars/group_vars) — see the rule "Product-Agnostic
+# Roles". Keep them in lockstep with that inventory's export exclusions
 # (freeipa_server_export_scope), since the two halves enforce the same boundary and drift
 # between them is exactly how an app-owned object becomes a delete candidate.
 freeipa_iam_reconcile_protect_regexes: []

@@ -41,10 +41,10 @@ from ansible.errors import AnsibleError  # noqa: E402
 from _templating import render as _render  # noqa: E402
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ROLE = REPO_ROOT / "ansible" / "roles" / "storage"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROLE = REPO_ROOT / "roles" / "storage"
 TASKS = ROLE / "tasks"
-PROFILES = REPO_ROOT / "ansible" / "playbooks" / "group_vars" / "all" / "storage.yml"
+PROFILES = REPO_ROOT / "playbooks" / "group_vars" / "all" / "storage.yml"
 
 SET_FACT = "ansible.builtin.set_fact"
 ASSERT = "ansible.builtin.assert"

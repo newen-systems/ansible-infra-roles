@@ -39,8 +39,8 @@ os.environ.setdefault("ANSIBLE_JINJA2_NATIVE", "True")
 
 from _templating import render as _render  # noqa: E402
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ROLE = REPO_ROOT / "ansible" / "roles" / "os_sbom"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROLE = REPO_ROOT / "roles" / "os_sbom"
 RESOLVE = ROLE / "tasks" / "resolve_project_model.yml"
 
 # set_fact task name → the variable it rewrites.

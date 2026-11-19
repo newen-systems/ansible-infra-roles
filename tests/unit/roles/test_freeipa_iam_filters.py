@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-MODULE_PATH = (REPO_ROOT / "ansible" / "roles" / "freeipa_server"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+MODULE_PATH = (REPO_ROOT / "roles" / "freeipa_server"
                / "filter_plugins" / "freeipa_iam.py")
 
 

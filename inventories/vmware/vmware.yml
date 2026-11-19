@@ -44,7 +44,7 @@ properties:
 # Grouping
 # ---------------------------------------------------------------------------
 # Group VMs by their vSphere resource-pool / folder path
-with_path: true
+# (with_path: true, set above, exposes the path.)
 
 # Group by custom attribute or tag (requires with_tags: true)
 # Uncomment the keyed_groups that match your tagging strategy.

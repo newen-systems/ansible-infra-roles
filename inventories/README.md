@@ -79,7 +79,7 @@ prefixes (``, `mgt-`, …) if a host key includes them.
 
 ## Other folders in this directory
 
-`test/`, `trial/`, `vault/`, `vmware/` are older scratchpad demos / dynamic
+`test/`, `trial/`, `vault/`, `vmware/` are older demo inventories / dynamic
 inventory plugins — not the estate template. Prefer `example/` for new work.
 
 ## Recommendations (design notes)

@@ -16,8 +16,8 @@ from pathlib import Path
 import yaml
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ROLE = REPO_ROOT / "ansible" / "roles" / "freeipa_server"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+ROLE = REPO_ROOT / "roles" / "freeipa_server"
 HEAL_TASKS = ROLE / "tasks" / "heal.yml"
 MAIN_TASKS = ROLE / "tasks" / "main.yml"
 DEFAULTS = ROLE / "defaults" / "main.yml"

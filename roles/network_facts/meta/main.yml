@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: network_facts
-  author: scratchpad
+  author: newen-systems
   description: >-
     Prints what the network catalog holds, one liftable recipe per fact.
     Read-only — it configures nothing.

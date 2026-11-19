@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[4]
 MODULE_PATH = (
-    REPO_ROOT / "ansible" / "roles" / "splunk_config" / "files" / "splunk_config_api_apply.py"
+    REPO_ROOT / "roles" / "splunk_config" / "files" / "splunk_config_api_apply.py"
 )
 
 
@@ -51,7 +51,7 @@ def test_is_stock_app(saa):
 def test_surface_loader_accepts_extra_conf(tmp_path):
     import importlib.util
     from pathlib import Path
-    path = Path(__file__).resolve().parents[5] / "ansible" / "roles" / "splunk_config" / "files" / "splunk_config_surface.py"
+    path = Path(__file__).resolve().parents[4] / "roles" / "splunk_config" / "files" / "splunk_config_surface.py"
     spec = importlib.util.spec_from_file_location("surface", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

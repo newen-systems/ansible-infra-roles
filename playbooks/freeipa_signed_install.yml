@@ -134,7 +134,7 @@
   # control-node dir task below overrides with become: false.
   become: true
   vars:
-    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../../pki')) }}"
+    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../pki')) }}"
     _ipa_csr_control_path: "{{ _ca_pki_dir }}/ipa/{{ env | default('ipa') }}-ipa.csr"
   tasks:
     - name: Phase 1 — emit and fetch the FreeIPA external-ca CSR
@@ -184,7 +184,7 @@
   gather_facts: false
   become: false
   vars:
-    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../../pki')) }}"
+    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../pki')) }}"
     _ipa_csr_control_path: "{{ _ca_pki_dir }}/ipa/{{ env | default('ipa') }}-ipa.csr"
   tasks:
     - name: Phase 1 — sign the fetched CSR off the Vault PKI issuing CA
@@ -238,7 +238,7 @@
   # become wrappers) and for the trust-anchor copy below.
   become: true
   vars:
-    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../../pki')) }}"
+    _ca_pki_dir: "{{ freeipa_signed_install_pki_dir | default(certificate_authority_pki_dir | default(playbook_dir + '/../pki')) }}"
     _ipa_cert_control_path: "{{ _ca_pki_dir }}/ipa/{{ env | default('ipa') }}-ipa-ca.crt"
     _ipa_chain_control_path: "{{ _ca_pki_dir }}/ipa/{{ env | default('ipa') }}-chain.crt"
     _ipa_cert_host_path: "/root/{{ env | default('ipa') }}-ipa-ca.crt"

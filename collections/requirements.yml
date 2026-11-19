@@ -1,7 +1,7 @@
 ---
 # Galaxy collection dependencies for the Ansible roles in this repo.
-# Install with:
-#   ansible-galaxy collection install -r collections/requirements.yml
+# Install with (installs into ./collections, which ansible.cfg searches):
+#   ansible-galaxy collection install -r collections/requirements.yml -p collections
 #
 # Lower bounds only (no upper caps) so consumers can track the latest —
 # pin in your own environment if you need reproducibility.
@@ -17,6 +17,10 @@ collections:
   - name: community.hashi_vault  # vault_write — vault_container post-setup, vcenter_svc_accounts
     version: ">=6.1.0"
   - name: community.vmware        # vmware_guest / networking / tags / roles (vsphere_vm, vcenter_svc_accounts)
-    version: ">=4.0.0"
+    version: ">=4.0.0,<6.0.0"
   - name: vmware.vmware           # vm_advanced_settings / deploy_folder_template / folder (vsphere_vm)
     version: ">=2.0.0"
+  - name: freeipa.ansible_freeipa # freeipa_server / freeipa_client (ipaserver, ipaclient, ipabackup)
+    version: ">=1.11.0"
+  - name: containers.podman       # freeipa_server_docker
+    version: ">=1.10.0"

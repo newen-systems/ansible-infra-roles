@@ -31,7 +31,7 @@
           Set -e freeipa_container_migrate_node=<inventory host to migrate> and
           -e freeipa_container_migrate_source=<surviving master FQDN to replicate from>.
 
-- name: "Stage 1 — decommission the package install on {{ freeipa_container_migrate_node }}"
+- name: "Stage 1 — decommission the package install on {{ freeipa_container_migrate_node | default('<node>') }}"
   hosts: "{{ freeipa_container_migrate_node | default('none') }}"
   become: true
   gather_facts: true
@@ -60,7 +60,7 @@
   roles:
     - role: freeipa_server
 
-- name: "Stage 2 — re-add {{ freeipa_container_migrate_node }} as a container replica (original FQDN)"
+- name: "Stage 2 — re-add {{ freeipa_container_migrate_node | default('<node>') }} as a container replica (original FQDN)"
   hosts: "{{ freeipa_container_migrate_node | default('none') }}"
   become: true
   gather_facts: true
